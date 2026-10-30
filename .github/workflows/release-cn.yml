@@ -66,7 +66,7 @@ jobs:
       - name: 收集产物
         run: |
           mkdir -p dist
-          cp src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg dist/ || true
+          cp target/aarch64-apple-darwin/release/bundle/dmg/*.dmg dist/
           ls -lh dist
 
       - uses: actions/upload-artifact@v6
