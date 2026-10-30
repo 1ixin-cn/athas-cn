@@ -1,0 +1,12 @@
+{
+  "name": "athas-cn-l10n",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "extract": "node extract.mjs",
+    "apply": "node apply.mjs"
+  },
+  "dependencies": {
+    "oxc-parser": "^0.80.0"
+  }
+}
