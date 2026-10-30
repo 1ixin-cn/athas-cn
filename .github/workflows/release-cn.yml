@@ -29,11 +29,14 @@ jobs:
 
       - name: Setup Vite+
         uses: voidzero-dev/setup-vp@v1.18.0
+        with:
+          # action 默认会自己跑一次 vp install（不带 --ignore-scripts），必须关掉
+          run-install: false
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.3.14
 
       - name: Install Rust nightly
         uses: dtolnay/rust-toolchain@nightly
@@ -48,7 +51,7 @@ jobs:
 
       - name: Install frontend dependencies
         # --ignore-scripts：nucleo 图标包是预构建的，其 preinstall 会校验商业授权密钥
-        run: vp install --ignore-scripts
+        run: bun install --ignore-scripts
 
       - name: Install l10n tooling
         run: npm --prefix tools/l10n install --no-audit --no-fund
