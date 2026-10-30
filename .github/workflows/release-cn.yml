@@ -47,7 +47,8 @@ jobs:
           shared-key: athascn-macos-arm64
 
       - name: Install frontend dependencies
-        run: vp install
+        # --ignore-scripts：nucleo 图标包是预构建的，其 preinstall 会校验商业授权密钥
+        run: vp install --ignore-scripts
 
       - name: Install l10n tooling
         run: npm --prefix tools/l10n install --no-audit --no-fund
