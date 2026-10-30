@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Athas",
+  "productName": "AthasCN",
   "version": "0.17.0",
-  "identifier": "com.code.athas",
+  "identifier": "dev.athascn.app",
   "build": {
     "beforeDevCommand": "vp dev",
     "devUrl": "http://127.0.0.1:1420",
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Athas",
+        "title": "AthasCN",
         "width": 1200,
         "height": 800,
         "decorations": true,
@@ -41,13 +41,13 @@
   },
   "bundle": {
     "active": true,
-    "publisher": "athasdev",
+    "publisher": "athas-cn",
     "homepage": "https://athas.dev",
     "category": "DeveloperTool",
     "shortDescription": "Lightweight code editor with Git, a terminal and AI agents",
     "longDescription": "Athas is a lightweight, open-source code editor for macOS, Windows and Linux. It has Git, an integrated terminal, a database viewer and coding agents built in.",
     "targets": ["app", "dmg", "nsis"],
-    "createUpdaterArtifacts": true,
+    "createUpdaterArtifacts": false,
     "icon": [
       "icons/prod/32x32.png",
       "icons/prod/128x128.png",
@@ -62,7 +62,7 @@
       "frameworks": [],
       "minimumSystemVersion": "10.15",
       "exceptionDomain": "",
-      "signingIdentity": "Developer ID Application: Mehmet Ozgul (N43BXFX4H4)",
+      "signingIdentity": "-",
       "providerShortName": null,
       "entitlements": null
     },
@@ -95,8 +95,8 @@
       "requireLiteralLeadingDot": false
     },
     "updater": {
-      "active": true,
-      "endpoints": ["https://athas.dev/api/update/stable"],
+      "active": false,
+      "endpoints": [],
       "dialog": false,
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEJBNDk0QjI4NkVDNDQwRUUKUldUdVFNUnVLRXRKdXV2elJZL3RsOWkvRDJueUwvQjh1UzdMbFBHZmZjV01Ec3lXZ1hFY3V6RkYK"
     }

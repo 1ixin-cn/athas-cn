@@ -1,0 +1,72 @@
+name: "Release AthasCN (macOS arm64)"
+
+on:
+  workflow_dispatch:
+    inputs:
+      upstream_ref:
+        description: "上游 ref（默认当前分支）"
+        required: false
+        default: ""
+  push:
+    tags: ["cn-v*"]
+
+concurrency:
+  group: release-cn-macos-arm64
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 180
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+
+      - name: Setup Vite+
+        uses: voidzero-dev/setup-vp@v1.18.0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install Rust nightly
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          targets: aarch64-apple-darwin
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: ". -> target"
+          shared-key: athascn-macos-arm64
+
+      - name: Install frontend dependencies
+        run: vp install
+
+      - name: Install l10n tooling
+        run: npm --prefix tools/l10n install --no-audit --no-fund
+
+      - name: 注入简体中文译文
+        run: node tools/l10n/apply.mjs
+        # 失败会非零退出，且不会污染工作区（回填器自带语法校验与回滚）
+
+      - name: Build
+        run: bunx tauri build --target aarch64-apple-darwin --bundles app,dmg
+
+      - name: 收集产物
+        run: |
+          mkdir -p dist
+          cp src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg dist/ || true
+          ls -lh dist
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: athascn-macos-arm64
+          path: dist/*.dmg
+          if-no-files-found: error
