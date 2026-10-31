@@ -532,7 +532,7 @@ const WindowMenuBar = ({ activeMenu, setActiveMenu }: Props) => {
       >
         {Object.entries(menus).map(([menuName, menuContent]) => (
           <MenubarMenu key={menuName} value={menuName}>
-            <MenubarTrigger>{menuName}</MenubarTrigger>
+            <MenubarTrigger>{menuLabels[menuName] ?? menuName}</MenubarTrigger>
             {menuContent}
           </MenubarMenu>
         ))}
@@ -540,6 +540,23 @@ const WindowMenuBar = ({ activeMenu, setActiveMenu }: Props) => {
     </div>
   );
 };
+
+// 一级菜单标题：id 稳定（供菜单状态/图标映射），label 字面量由 l10n 管线在构建时替换
+const menuLabelEntries = [
+  { id: "File", label: "File" },
+  { id: "Edit", label: "Edit" },
+  { id: "View", label: "View" },
+  { id: "Go", label: "Go" },
+  { id: "Terminal", label: "Terminal" },
+  { id: "Run", label: "Run" },
+  { id: "Agent", label: "Agent" },
+  { id: "Tools", label: "Tools" },
+  { id: "Window", label: "Window" },
+  { id: "Help", label: "Help" },
+];
+const menuLabels: Record<string, string> = Object.fromEntries(
+  menuLabelEntries.map((entry) => [entry.id, entry.label]),
+);
 
 const menuIcons: Record<string, React.ReactNode> = {
   File: <FileIcon />,
@@ -581,7 +598,7 @@ export function WindowMenuDropdown({
             <DropdownMenuSub key={menuName}>
               <DropdownMenuSubTrigger>
                 {menuIcons[menuName]}
-                {menuName}
+                {menuLabels[menuName] ?? menuName}
               </DropdownMenuSubTrigger>
               {menuContent}
             </DropdownMenuSub>

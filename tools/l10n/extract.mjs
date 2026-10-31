@@ -36,10 +36,17 @@ const UI_CALLS = new Set([
   "success", "info", "warning",
 ]);
 
+// 快捷键组合（CmdOrCtrl+Shift+P / F5 / Shift+Alt+F）——绝不能翻
+const ACCELERATOR = /^([A-Za-z]{2,10}\+){1,4}([A-Za-z0-9]+|[,./])$|^(Shift\+)?F\d{1,2}$/;
+// 按键名（keymap 里的 Enter/Escape/ArrowDown）——不能翻
+const KEY_NAME = /^(Enter|Escape|Esc|Tab|Backspace|Delete|Del|Home|End|PageUp|PageDown|Insert|Space|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|Up|Down|Left|Right|CapsLock|NumLock|ScrollLock|ContextMenu|Meta|Super|Hyper)$/;
+
 // 看起来像文案，而不是 key / class / 路径 / 颜色
-function looksLikeProse(s) {
+// allowSingleWord: UI 标签上下文（菜单项/按钮/属性）允许单个 Titlecase 单词
+function looksLikeProse(s, allowSingleWord = false) {
   const t = s.trim();
   if (t.length < 2 || t.length > 200) return false;
+  if (ACCELERATOR.test(t) || KEY_NAME.test(t)) return false;
   if (!/[A-Za-z一-鿿]/.test(t)) return false;
   if (/[\n\r\t]/.test(t)) return false;
   if (t.includes("${") || t.includes("\\")) return false;
@@ -49,12 +56,15 @@ function looksLikeProse(s) {
   if (/^\.[a-z0-9]{1,5}$/.test(t)) return false;
   if (/\.(json|toml|ya?ml|md|ts|tsx|js|jsx|rs|svg|png|gif|lock|sh|ps1|exe|dmg|deb|rpm)$/i.test(t) && !t.includes(" ")) return false;
   if (/^[a-z][a-zA-Z0-9]*$/.test(t)) return false;           // camelCase key
-  if (/^[\w.-]+$/.test(t)) return false;                     // 标识符 / 点号键
+  if (/^[\w.-]+$/.test(t)) {
+    // 标识符 / 点号键；但 UI 标签上下文的单个 Titlecase 词放行
+    if (!(allowSingleWord && /^[A-Z][a-zA-Z0-9]*$/.test(t))) return false;
+  }
   if (/^-/.test(t)) return false;                             // CLI 参数
   if (/^[a-z0-9]+([-_.:/][a-z0-9]+)+$/.test(t)) return false; // kebab/snake/path/select
   if (/^[A-Z][a-zA-Z0-9]*$/.test(t) && !t.includes(" ")) {
-    // 单个首字母大写词：只有当它是常见词时才收（由 UI_ATTRS/UI_CALLS 上下文决定）
-    return false;
+    // 单个 Titlecase 词：仅 UI 标签上下文放行，其余视为标识符/类名
+    return allowSingleWord;
   }
   if (/^(flex|grid|absolute|relative|hidden|block|inline)/.test(t) && !/[一-鿿]/.test(t)) {
     const words = t.split(/\s+/);
@@ -85,7 +95,7 @@ function walkTs(file, src) {
   const isStr = (n) =>
     !!n && (n.type === "Literal" || n.type === "StringLiteral") && typeof n.value === "string";
 
-  const push = (node, kind, ctx) => {
+  const push = (node, kind, ctx, allowSingleWord = false) => {
     if (!node || typeof node.start !== "number") return;
     let raw = src.slice(node.start, node.end);
     let s0 = node.start;
@@ -96,7 +106,7 @@ function walkTs(file, src) {
       e0 -= 1;
     }
     const en = raw.trim();
-    if (!looksLikeProse(en)) return;
+    if (!looksLikeProse(en, allowSingleWord)) return;
     out.push({
       id: `${rel}:${s0}`,
       file: rel,
@@ -134,21 +144,22 @@ function walkTs(file, src) {
     switch (n.type) {
       case "JSXText": {
         const t = n.value.trim();
-        if (t && /[A-Za-z一-鿿]/.test(t) && looksLikeProse(t)) {
+        if (t && /[A-Za-z一-鿿]/.test(t) && looksLikeProse(t, true)) {
           // JSXText 的 start/end 含空白，收窄到实际文字
           const lead = n.value.length - n.value.trimStart().length;
           const trail = n.value.length - n.value.trimEnd().length;
-          push({ start: n.start + lead, end: n.end - trail }, "jsx-text", ctxOf(n));
+          push({ start: n.start + lead, end: n.end - trail }, "jsx-text", ctxOf(n), true);
         }
         break;
       }
       case "JSXAttribute": {
         const an = n.name?.name ?? n.name?.value;
         if (an && UI_ATTRS.has(an)) {
+          const allow = an !== "name";
           const v = n.value;
-          if (isStr(v)) push(v, `attr:${an}`, ctxOf(n));
+          if (isStr(v)) push(v, `attr:${an}`, ctxOf(n), allow);
           else if (v?.type === "JSXExpressionContainer" && isStr(v.expression))
-            push(v.expression, `attr:${an}`, ctxOf(n));
+            push(v.expression, `attr:${an}`, ctxOf(n), allow);
         }
         break;
       }
@@ -159,7 +170,7 @@ function walkTs(file, src) {
         else if (c?.type === "MemberExpression") callee = c.property?.name ?? "";
         if (callee && UI_CALLS.has(callee)) {
           const a0 = n.arguments?.[0];
-          if (isStr(a0)) push(a0, `call:${callee}`, ctxOf(n));
+          if (isStr(a0)) push(a0, `call:${callee}`, ctxOf(n), true);
         }
         break;
       }
@@ -167,8 +178,9 @@ function walkTs(file, src) {
       case "ObjectProperty": {
         const k = n.key?.name ?? n.key?.value;
         if (k && UI_OBJ_KEYS.has(k)) {
+          const allow = !["name"].includes(k);
           const v = n.value;
-          if (isStr(v)) push(v, `obj:${k}`, ctxOf(n));
+          if (isStr(v)) push(v, `obj:${k}`, ctxOf(n), allow);
         }
         break;
       }
@@ -192,6 +204,8 @@ function walkTs(file, src) {
 function walkRs(file, src) {
   const rel = path.relative(ROOT, file);
   if (/(^|\/)(tests?|examples?|benches)(\/|$)/.test(rel) || /tests\.rs$/.test(rel)) return [];
+  // menu.rs 的字符串多为菜单标签，允许单单词
+  const allowSingleWord = /(^|\/)menu\.rs$/.test(rel);
   const out = [];
   const lines = src.split("\n");
   let inTest = false;
@@ -212,7 +226,7 @@ function walkRs(file, src) {
       const inner = m[1];
       const start = off + m.index + 1;
       const end = start + inner.length;
-      if (looksLikeProse(inner) && !/\{\s*\w*\s*[:}]/.test(inner)) {
+      if (looksLikeProse(inner, allowSingleWord) && !/\{\s*\w*\s*[:}]/.test(inner)) {
         out.push({
           id: `${rel}:${start}`,
           file: rel,
